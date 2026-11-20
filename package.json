@@ -1,0 +1,28 @@
+{
+  "name": "flux-core",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter @flux/api db:generate",
+    "db:migrate": "pnpm --filter @flux/api db:migrate",
+    "demo:seed": "node scripts/seed-demo.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.0",
+    "turbo": "^2.5.0",
+    "typescript": "~5.9.0",
+    "typescript-eslint": "^8.46.0"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

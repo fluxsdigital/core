@@ -1,0 +1,42 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "lint": {},
+    "test": {
+      "cache": false,
+      "dependsOn": ["build"],
+      "passThroughEnv": ["DATABASE_URL"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": [
+        "DATABASE_URL",
+        "API_HOST",
+        "API_PORT",
+        "FLUX_API_URL",
+        "APP_ORIGIN",
+        "JWT_SECRET",
+        "SMTP_URL",
+        "MAIL_FROM",
+        "TRUST_PROXY_HOPS",
+        "ENABLE_SWAGGER"
+      ]
+    },
+    "@flux/api#build": {
+      "cache": false,
+      "outputs": ["dist/**"]
+    },
+    "@flux/web#build": {
+      "dependsOn": ["^build"],
+      "env": ["FLUX_API_URL", "FLUX_STANDALONE", "FLUX_EXTERNAL_PROXY"]
+    },
+    "@flux/ui#build": {
+      "outputs": []
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "name": "@flux/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "prisma generate && tsc && concurrently --kill-others-on-fail 'tsc --watch --preserveWatchOutput' 'node --watch dist/main.js'",
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "lint": "eslint src test",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "start": "node dist/main.js",
+    "test": "jest --runInBand"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/jwt": "^11.0.2",
+    "@nestjs/platform-express": "^11.1.0",
+    "@nestjs/swagger": "^11.2.0",
+    "@nestjs/throttler": "^6.8.0",
+    "@prisma/client": "6.19.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.0.0",
+    "nodemailer": "^10.6.0",
+    "pdfkit": "^0.20.2",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.0.0",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pdfkit": "^0.17.7",
+    "concurrently": "^9.2.0",
+    "jest": "^30.5.2",
+    "prisma": "6.19.3",
+    "smtp-server": "^3.21.6"
+  }
+}

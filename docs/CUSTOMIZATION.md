@@ -1,0 +1,13 @@
+# Customização por cliente
+
+O núcleo é compartilhado pela Flux. Use o painel **Visão geral → Personalizar empresa** com uma conta de proprietário ou administrador para definir nome de exibição, cor e módulos habilitados. Os dados operacionais permanecem associados à empresa quando um módulo é desativado. Para ordens, configure os estados em **Ordens de serviço → Configurações**.
+
+| Necessidade           | Ponto de extensão                                                                                                                                                                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Identidade de cliente | `OrganizationSettings` e tokens em `packages/ui`                                                                                                                                                                                                                               |
+| Habilitar um módulo   | Declare a permissão em `tenancy/permissions.ts`, associe a flag em `tenancy/features.ts` e aplique o mesmo controle no `Workspace`                                                                                                                                             |
+| Campo personalizado   | Acrescente definições por empresa, tipo de entidade e chave estável. Guarde valores junto da chave composta de empresa e registro. Valide tipo e obrigatoriedade no DTO e no serviço do domínio antes de salvar.                                                               |
+| Integração de cliente | Implemente um módulo NestJS que receba o contexto da organização. Para entrega assíncrona, registre um evento de saída na mesma transação do domínio e use uma chave de idempotência por empresa no consumidor. Guarde referências a credenciais fora da configuração pública. |
+| Regra específica      | Encapsule a regra em um módulo ou estratégia ativada por configuração e mantenha o fluxo padrão como o comportamento para as demais empresas.                                                                                                                                  |
+
+Os campos extras e os adaptadores externos entram conforme a implantação de cada cliente. Para toda extensão, teste a permissão alocada e o isolamento em dois tenants antes de publicar.

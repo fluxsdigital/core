@@ -1,0 +1,17 @@
+node_modules/
+.next/
+dist/
+.turbo/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+!.env.homolog.example
+coverage/
+playwright-report/
+test-results/
+deploy/tls/
+backups/
+
+/out/
+/apps/web/out/

@@ -1,0 +1,292 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id           String                @id @default(uuid()) @db.Uuid
+  name         String                @db.VarChar(150)
+  createdAt    DateTime              @default(now())
+  members      Membership[]
+  audit        AuditEvent[]
+  directory    DirectoryRecord[]
+  quotes       Quote[]
+  workOrders   WorkOrder[]
+  workStatuses WorkStatus[]
+  settings     OrganizationSettings?
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MANAGER
+  OPERATOR
+}
+
+model User {
+  id           String          @id @default(uuid()) @db.Uuid
+  email        String          @unique @db.VarChar(254)
+  name         String          @db.VarChar(150)
+  passwordHash String
+  createdAt    DateTime        @default(now())
+  members      Membership[]
+  sessions     Session[]
+  resets       PasswordReset[]
+}
+
+model Membership {
+  userId         String       @db.Uuid
+  organizationId String       @db.Uuid
+  role           Role
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  assignments WorkOrder[]
+
+  @@id([organizationId, userId])
+  @@index([userId])
+}
+
+model Session {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  refreshHash String    @unique @db.Char(64)
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordReset {
+  hash      String    @id @db.Char(64)
+  userId    String    @db.Uuid
+  expiresAt DateTime
+  usedAt    DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuditEvent {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  actorId        String       @db.Uuid
+  action         String       @db.VarChar(64)
+  entity         String       @db.VarChar(64)
+  entityId       String       @db.Uuid
+  details        Json?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt, id])
+}
+
+enum DirectoryKind {
+  CUSTOMER
+  CONTACT
+  PRODUCT
+  SERVICE
+  CATEGORY
+}
+
+model DirectoryRecord {
+  organizationId String                @db.Uuid
+  id             String                @default(uuid()) @db.Uuid
+  kind           DirectoryKind
+  name           String                @db.VarChar(150)
+  email          String?               @db.VarChar(254)
+  phone          String?               @db.VarChar(40)
+  code           String?               @db.VarChar(80)
+  description    String?               @db.VarChar(1500)
+  priceCents     Int?
+  parentId       String?               @db.Uuid
+  archivedAt     DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  parent         DirectoryRecord?      @relation("DirectoryParent", fields: [organizationId, parentId], references: [organizationId, id], onDelete: Restrict)
+  children       DirectoryRecord[]     @relation("DirectoryParent")
+  notes          DirectoryNote[]
+  attachments    DirectoryAttachment[]
+
+  quotes     Quote[]     @relation("QuoteCustomer")
+  quoteItems QuoteLine[]
+  workOrders WorkOrder[] @relation("WorkOrderCustomer")
+
+  @@id([organizationId, id])
+  @@index([organizationId, kind, archivedAt, name, id])
+  @@index([organizationId, parentId])
+}
+
+model DirectoryNote {
+  organizationId String          @db.Uuid
+  id             String          @default(uuid()) @db.Uuid
+  recordId       String          @db.Uuid
+  content        String          @db.VarChar(3000)
+  authorId       String          @db.Uuid
+  archivedAt     DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  record         DirectoryRecord @relation(fields: [organizationId, recordId], references: [organizationId, id], onDelete: Restrict)
+
+  @@id([organizationId, id])
+  @@index([organizationId, recordId, archivedAt, createdAt])
+}
+
+model DirectoryAttachment {
+  organizationId String          @db.Uuid
+  id             String          @default(uuid()) @db.Uuid
+  recordId       String          @db.Uuid
+  name           String          @db.VarChar(150)
+  mediaType      String          @db.VarChar(100)
+  data           Bytes
+  size           Int
+  authorId       String          @db.Uuid
+  archivedAt     DateTime?
+  createdAt      DateTime        @default(now())
+  record         DirectoryRecord @relation(fields: [organizationId, recordId], references: [organizationId, id], onDelete: Restrict)
+
+  @@id([organizationId, id])
+  @@index([organizationId, recordId, archivedAt, createdAt])
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+}
+
+model Quote {
+  organizationId String          @db.Uuid
+  id             String          @default(uuid()) @db.Uuid
+  customerId     String          @db.Uuid
+  customerName   String          @db.VarChar(150)
+  title          String          @db.VarChar(150)
+  status         QuoteStatus     @default(DRAFT)
+  subtotalCents  Int
+  discountCents  Int
+  totalCents     Int
+  revision       Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  customer       DirectoryRecord @relation("QuoteCustomer", fields: [organizationId, customerId], references: [organizationId, id], onDelete: Restrict)
+  lines          QuoteLine[]
+  order          WorkOrder?
+
+  @@id([organizationId, id])
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, customerId])
+}
+
+model QuoteLine {
+  organizationId String          @db.Uuid
+  quoteId        String          @db.Uuid
+  position       Int
+  itemId         String          @db.Uuid
+  kind           DirectoryKind
+  label          String          @db.VarChar(150)
+  quantity       Int
+  unitPriceCents Int
+  discountCents  Int
+  totalCents     Int
+  quote          Quote           @relation(fields: [organizationId, quoteId], references: [organizationId, id], onDelete: Cascade)
+  item           DirectoryRecord @relation(fields: [organizationId, itemId], references: [organizationId, id], onDelete: Restrict)
+
+  @@id([organizationId, quoteId, position])
+  @@index([organizationId, itemId])
+}
+
+model WorkOrder {
+  organizationId   String           @db.Uuid
+  id               String           @default(uuid()) @db.Uuid
+  quoteId          String?          @db.Uuid
+  customerId       String           @db.Uuid
+  title            String           @db.VarChar(150)
+  createdBy        String           @db.Uuid
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  statusKey        String           @default("open") @db.VarChar(36)
+  priority         WorkPriority     @default(NORMAL)
+  assignedUserId   String?          @db.Uuid
+  dueAt            DateTime?
+  completionReport String?          @db.VarChar(6000)
+  completedAt      DateTime?
+  status           WorkStatus       @relation(fields: [organizationId, statusKey], references: [organizationId, key], onDelete: Restrict)
+  assignee         Membership?      @relation(fields: [organizationId, assignedUserId], references: [organizationId, userId], onDelete: Restrict)
+  tasks            WorkTask[]
+  attachments      WorkAttachment[]
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  customer         DirectoryRecord  @relation("WorkOrderCustomer", fields: [organizationId, customerId], references: [organizationId, id], onDelete: Restrict)
+  quote            Quote?           @relation(fields: [organizationId, quoteId], references: [organizationId, id], onDelete: Restrict)
+
+  @@id([organizationId, id])
+  @@unique([organizationId, quoteId])
+  @@index([organizationId, statusKey, dueAt])
+  @@index([organizationId, assignedUserId])
+  @@index([organizationId, customerId])
+}
+
+enum WorkPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model WorkStatus {
+  organizationId String       @db.Uuid
+  key            String       @default(uuid()) @db.VarChar(36)
+  label          String       @db.VarChar(150)
+  terminal       Boolean      @default(false)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  orders         WorkOrder[]
+
+  @@id([organizationId, key])
+  @@unique([organizationId, label])
+}
+
+model WorkTask {
+  organizationId String    @db.Uuid
+  id             String    @default(uuid()) @db.Uuid
+  orderId        String    @db.Uuid
+  label          String    @db.VarChar(150)
+  done           Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  order          WorkOrder @relation(fields: [organizationId, orderId], references: [organizationId, id], onDelete: Restrict)
+
+  @@id([organizationId, id])
+  @@index([organizationId, orderId, createdAt])
+}
+
+model WorkAttachment {
+  organizationId String    @db.Uuid
+  id             String    @default(uuid()) @db.Uuid
+  orderId        String    @db.Uuid
+  name           String    @db.VarChar(150)
+  size           Int
+  data           Bytes
+  createdAt      DateTime  @default(now())
+  order          WorkOrder @relation(fields: [organizationId, orderId], references: [organizationId, id], onDelete: Restrict)
+
+  @@id([organizationId, id])
+  @@index([organizationId, orderId])
+}
+
+model OrganizationSettings {
+  organizationId   String       @id @db.Uuid
+  displayName      String?      @db.VarChar(150)
+  accentColor      String       @default("#174877") @db.Char(7)
+  directoryEnabled Boolean      @default(true)
+  quotesEnabled    Boolean      @default(true)
+  ordersEnabled    Boolean      @default(true)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  updatedAt        DateTime     @updatedAt
+}
